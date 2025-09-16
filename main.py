@@ -1,5 +1,5 @@
 # text_classification_20newsgroups_pytorch.py
-# Purpose: TF-IDF + PyTorch MLP for 20 Newsgroups (with save/load support for Streamlit)
+# Purpose: TF-IDF + PyTorch MLP for 20 Newsgroups (with Streamlit-compatible save/load)
 
 import os
 import random
@@ -145,10 +145,10 @@ def evaluate():
     print("Confusion Matrix:\n", confusion_matrix(y_true, y_pred))
 
 # =========================
-# Save Model, Vectorizer, Labels
+# Save Model, Vectorizer, Labels (Streamlit-compatible)
 # =========================
 def save_resources():
-    torch.save(model.state_dict(), "model.pth")
+    torch.save(model.state_dict(), "model_state_dict.pt")  # <-- renamed to match Streamlit
     joblib.dump(vectorizer, "vectorizer.pkl")
     with open("label_names.json", "w") as f:
         json.dump(data.target_names, f)
