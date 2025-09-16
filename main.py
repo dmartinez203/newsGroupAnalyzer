@@ -1,23 +1,26 @@
 # text_classification_20newsgroups_pytorch.py
-# Purpose: TF-IDF + PyTorch MLP for 20 Newsgroups
+# Purpose: TF-IDF + PyTorch MLP for 20 Newsgroups (with save/load support for Streamlit)
 
 import os
 import random
 import numpy as np
+import torch
+import torch.nn as nn
+from torch.utils.data import TensorDataset, DataLoader
+from sklearn.datasets import fetch_20newsgroups
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+import joblib
+import json
 
 # ---- Reproducibility ----
 SEED = 42
 os.environ["PYTHONHASHSEED"] = str(SEED)
 random.seed(SEED)
 np.random.seed(SEED)
-
-import torch
 torch.manual_seed(SEED)
 torch.cuda.manual_seed_all(SEED)
-
-from sklearn.datasets import fetch_20newsgroups
-from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 # =========================
 # Load Dataset
@@ -36,8 +39,7 @@ vectorizer = TfidfVectorizer(
     strip_accents='unicode',
     token_pattern=r"(?u)\b[a-zA-Z][a-zA-Z]+\b"
 )
-X_vec = vectorizer.fit_transform(X_raw)
-X_vec = X_vec.toarray()
+X_vec = vectorizer.fit_transform(X_raw).toarray()
 
 # =========================
 # Split data
@@ -56,7 +58,6 @@ y_train_t = torch.tensor(y_train, dtype=torch.long)
 X_test_t  = torch.tensor(X_test,  dtype=torch.float32)
 y_test_t  = torch.tensor(y_test,  dtype=torch.long)
 
-from torch.utils.data import TensorDataset, DataLoader
 train_ds = TensorDataset(X_train_t, y_train_t)
 test_ds  = TensorDataset(X_test_t,  y_test_t)
 
@@ -66,8 +67,6 @@ test_loader  = DataLoader(test_ds,  batch_size=256, shuffle=False)
 # =========================
 # Neural Network Architecture
 # =========================
-import torch.nn as nn
-
 class NewsMLP(nn.Module):
     def __init__(self, input_dim, num_classes):
         super().__init__()
@@ -127,8 +126,6 @@ def train(num_epochs=10):
 # =========================
 # Evaluate the Model
 # =========================
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-
 def evaluate():
     model.eval()
     all_preds, all_targets = [], []
@@ -148,8 +145,19 @@ def evaluate():
     print("Confusion Matrix:\n", confusion_matrix(y_true, y_pred))
 
 # =========================
+# Save Model, Vectorizer, Labels
+# =========================
+def save_resources():
+    torch.save(model.state_dict(), "model.pth")
+    joblib.dump(vectorizer, "vectorizer.pkl")
+    with open("label_names.json", "w") as f:
+        json.dump(data.target_names, f)
+    print("Model, vectorizer, and labels saved!")
+
+# =========================
 # Run
 # =========================
 if __name__ == "__main__":
     train(num_epochs=10)
     evaluate()
+    save_resources()
